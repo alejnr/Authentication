@@ -2,7 +2,10 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
 const encrypt = require('mongoose-encryption')
+const dotenv = require('dotenv')
 const ejs = require('ejs')
+
+dotenv.config()
 
 const app = express()
 const port = 3000
