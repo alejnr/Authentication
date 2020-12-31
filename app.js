@@ -34,6 +34,21 @@ app.get('/register', function (req, res) {
     res.render('register')
 })
 
+app.post('/register', function (req, res) {
+    const newUser = new User({
+        email: req.body.username,
+        password: req.body.password
+    })
+
+    newUser.save(function (err) {
+        if (!err) {
+            res.render('secrets')
+        } else {
+            console.log(err)
+        }
+    })
+})
+
 
 app.listen(port, function(){
     console.log('Server started on port', port);
