@@ -21,6 +21,8 @@ const userSchema = new mongoose.Schema({
     password: String
 })
 
+userSchema.plugin(encrypt, { secret: process.env.SECRET_KEY, encryptedFields: ['password'] })
+
 const User = new mongoose.model('User', userSchema)
 
 
@@ -35,10 +37,14 @@ app.get('/login', function (req, res) {
 
 app.post('/login', function (req, res) {
 
-    User.findOne({email: req.body.username, password: req.body.password}, function (err, foundUser) {
+    User.findOne({email: req.body.username}, function (err, foundUser) {
         if (!err) {
             if (foundUser) {
-                res.render('secrets')
+                if (foundUser.password === req.body.password) {
+                    res.render('secrets')
+                } else {
+                    console.log('Invalid Password!')
+                }
             } else {
                 console.log('Invalid Username or Password!')
             }
