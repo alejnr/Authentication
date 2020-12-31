@@ -2,13 +2,15 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
 const dotenv = require('dotenv')
-const md5 = require('md5')
+const bcrypt = require('bcrypt')
 const ejs = require('ejs')
 
 dotenv.config()
 
 const app = express()
 const port = 3000
+
+const saltRounds = 10
 
 app.set('view engine', 'ejs')
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -38,11 +40,17 @@ app.post('/login', function (req, res) {
     User.findOne({email: req.body.username}, function (err, foundUser) {
         if (!err) {
             if (foundUser) {
-                if (foundUser.password === md5(req.body.password)) {
-                    res.render('secrets')
-                } else {
-                    console.log('Invalid Password!')
-                }
+                bcrypt.compare(req.body.password, foundUser.password, function(err, result) {
+                    if (!err) {
+                        if (result) {
+                            res.render('secrets')
+                        } else {
+                            console.log('Invalid Password!')
+                        }
+                    } else {
+                        console.log(err)
+                    }
+                })
             } else {
                 console.log('Invalid Username or Password!')
             }
@@ -59,18 +67,25 @@ app.get('/register', function (req, res) {
 })
 
 app.post('/register', function (req, res) {
-    const newUser = new User({
-        email: req.body.username,
-        password: md5(req.body.password)
-    })
-
-    newUser.save(function (err) {
+    
+    bcrypt.hash(req.body.password, saltRounds, function(err, hashPassword) {
         if (!err) {
-            res.render('secrets')
+            const newUser = new User({
+                email: req.body.username,
+                password: hashPassword
+            })
+            newUser.save(function (err) {
+                if (!err) {
+                    res.render('secrets')
+                } else {
+                    console.log(err)
+                }
+            })
         } else {
             console.log(err)
         }
     })
+
 })
 
 
