@@ -1,8 +1,10 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
+const session = require('express-session')
+const passport = require('passport')
+const passportLocalMongoose = require('passport-local-mongoose')
 const dotenv = require('dotenv')
-const bcrypt = require('bcrypt')
 const ejs = require('ejs')
 
 dotenv.config()
@@ -10,20 +12,34 @@ dotenv.config()
 const app = express()
 const port = 3000
 
-const saltRounds = 10
-
 app.set('view engine', 'ejs')
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(express.static('public'))
 
-mongoose.connect('mongodb://localhost:27017/userDB', {useNewUrlParser: true, useUnifiedTopology: true})
+app.use(session({
+    secret: process.env.SECRET_KEY,
+    resave: false,
+    saveUninitialized: false
+}))
+
+app.use(passport.initialize())
+app.use(passport.session())
+
+mongoose.connect('mongodb://localhost:27017/userDB', {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
 
 const userSchema = new mongoose.Schema({
     email: String,
     password: String
 })
 
+userSchema.plugin(passportLocalMongoose)
+
 const User = new mongoose.model('User', userSchema)
+
+passport.use(User.createStrategy())
+ 
+passport.serializeUser(User.serializeUser())
+passport.deserializeUser(User.deserializeUser())
 
 
 app.get('/', function (req, res) {
@@ -37,29 +53,30 @@ app.get('/login', function (req, res) {
 
 app.post('/login', function (req, res) {
 
-    User.findOne({email: req.body.username}, function (err, foundUser) {
+    const user = new User({
+        username: req.body.username,
+        password: req.body.password
+    })
+
+    req.login(user, function (err) {
         if (!err) {
-            if (foundUser) {
-                bcrypt.compare(req.body.password, foundUser.password, function(err, result) {
-                    if (!err) {
-                        if (result) {
-                            res.render('secrets')
-                        } else {
-                            console.log('Invalid Password!')
-                        }
-                    } else {
-                        console.log(err)
-                    }
-                })
-            } else {
-                console.log('Invalid Username or Password!')
-            }
+            passport.authenticate('local')(req, res, function () {
+                res.redirect('/secrets')
+            })
         } else {
             console.log(err)
         }
     })
 
 })
+
+app.get('/secrets', function (req, res) {
+    if (req.isAuthenticated()) {
+        res.render('secrets')
+    } else {
+        res.redirect('/login')
+    }
+}) 
 
 
 app.get('/register', function (req, res) {
@@ -68,21 +85,19 @@ app.get('/register', function (req, res) {
 
 app.post('/register', function (req, res) {
     
-    bcrypt.hash(req.body.password, saltRounds, function(err, hashPassword) {
-        if (!err) {
-            const newUser = new User({
-                email: req.body.username,
-                password: hashPassword
-            })
-            newUser.save(function (err) {
-                if (!err) {
-                    res.render('secrets')
-                } else {
-                    console.log(err)
-                }
-            })
+    User.register({})
+    User.register({username: req.body.username}, req.body.password, function (err, user) {
+        if(!err) {
+            if (user) {
+                passport.authenticate('local')(req, res, function () {
+                    res.redirect('/secrets')
+                })
+            } else {
+                console.log(err)
+            }
         } else {
-            console.log(err)
+            res.redirect('/register')
+            console.log('A user with the given Email is already registered')
         }
     })
 
