@@ -29,6 +29,22 @@ app.get('/login', function (req, res) {
     res.render('login')
 })
 
+app.post('/login', function (req, res) {
+
+    User.findOne({email: req.body.username, password: req.body.password}, function (err, foundUser) {
+        if (!err) {
+            if (foundUser) {
+                res.render('secrets')
+            } else {
+                console.log('Invalid Username or Password!')
+            }
+        } else {
+            console.log(err)
+        }
+    })
+
+})
+
 
 app.get('/register', function (req, res) {
     res.render('register')
