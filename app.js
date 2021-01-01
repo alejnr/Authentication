@@ -60,7 +60,7 @@ passport.use(new GoogleStrategy({
     userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
   },
   function(accessToken, refreshToken, profile, cb) {
-    User.findOrCreate({ googleId: profile.id }, function (err, user) {
+    User.findOrCreate({ googleId: profile.id }, { username: profile.emails[0].value }, function (err, user) {
       return cb(err, user)
     })
   }
@@ -69,12 +69,13 @@ passport.use(new GoogleStrategy({
 passport.use(new FacebookStrategy({
     clientID: process.env.FACEBOOK_APP_ID,
     clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: "http://localhost:3000/auth/facebook/secrets"
+    callbackURL: "http://localhost:3000/auth/facebook/secrets",
+    profileFields: ['id', 'displayName', 'photos', 'email']
   },
   function(accessToken, refreshToken, profile, cb) {
-    User.findOrCreate({ facebookId: profile.id }, function (err, user) {
-      return cb(err, user);
-    });
+    User.findOrCreate({ facebookId: profile.id }, { username: profile.emails[0].value }, function (err, user) {
+      return cb(err, user)
+    })
   }
 ))
 
@@ -83,7 +84,7 @@ app.get('/', function (req, res) {
 })
 
 app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile'] })
+  passport.authenticate('google', { scope: ['profile', 'https://www.googleapis.com/auth/userinfo.email'] })
 )
 
 app.get('/auth/google/secrets', 
@@ -93,14 +94,14 @@ app.get('/auth/google/secrets',
 })
 
 app.get('/auth/facebook',
-  passport.authenticate('facebook')
+  passport.authenticate('facebook', { scope: ['email'] })
 )
 
 app.get('/auth/facebook/secrets',
   passport.authenticate('facebook', { failureRedirect: '/login' }),
   function(req, res) {
     res.redirect('/secrets')
-  });
+})
 
 app.get('/logout', function (req, res) {
     req.logout()
