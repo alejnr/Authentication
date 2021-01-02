@@ -1,16 +1,51 @@
 <%- include('partials/header') %>
+<main>
+  <% if (user) { %>
+    <div class="container pt-3 mb-5">
+      <img class="userImage" src="<% if (user.image) { %><%= user.image %><% } else { %>https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Anonymous_emblem.svg/1200px-Anonymous_emblem.svg.png<% } %>">
+      <p class="userName mt-2">Welcome, <% if (user.name) { %><%= user.name %> <% } else { %> Anonymous<% } %></p>
+    </div>
+  <% } %> 
+  <section class="py-5 text-center container">
+    <div class="row py-lg-5">
+      <div class="col-lg-6 col-md-8 mx-auto">
+        <h1 class="fw-light">Anonymous  Secrets</h1>
+        <p class="lead text-muted">
+          Anonymous Secrets allows you to share your secrets anonymously, No matter if it's a password or any other kind of sensitive data.
+        </p>
+       <% if (req.isAuthenticated()) { %>
+          <a class="btn btn-light mr-2 btn-lg" href="/logout" role="button">Logout</a>
+          <a class="btn btn-dark btn-lg" href="/submit" role="button">Submit a Secret</a>
+       <% } else { %>
+          <p class="lead">Login / Register to sumbit a secret</p>
+          <a class="btn btn-light mr-2 btn-lg" href="/register" role="button">Register</a>
+          <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
+      <% } %>
+        </p>
+      </div>
+    </div>
+  </section>
 
+  <div class="py-5 bg-light">
+    <div class="container">
+      
+      <h3 class="mb-3">Secrets</h3>
 
-<div class="jumbotron centered">
-  <div class="container">
-    <i class="fas fa-key fa-6x"></i>
-    <h1 class="display-3">Secrets</h1>
-    <p class="lead">Don't keep your secrets, share them anonymously!</p>
-    <hr>
-    <a class="btn btn-light btn-lg" href="/register" role="button">Register</a>
-    <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
-
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3">
+        <% secrets.forEach(secret => { %>
+        <div class="col p-2">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <p class="card-text"><%= secret.content %></p>
+              <div class="d-flex justify-content-between align-items-center">
+              </div>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
   </div>
-</div>
 
+</main>
 <%- include('partials/footer') %>
