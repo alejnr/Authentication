@@ -1,16 +1,10 @@
-
-body {
-  background-color: #E8ECEF;
+.userImage {
+    object-fit: contain;
+    border-radius: 100px;
+    width: 50px;
+    float: right;
 }
 
-.centered {
-    padding-top: 200px;
-    text-align: center;
-}
-
-.secret-text {
-  text-align: center;
-  font-size: 2rem;
-  color: #fff;
-  background-color: #000;
+.userName {
+    float: left;
 }

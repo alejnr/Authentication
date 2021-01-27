@@ -1,18 +1,33 @@
 <%- include('partials/header') %>
 
-<div class="container">
-  <div class="jumbotron centered">
-    <i class="fas fa-key fa-6x"></i>
-    <h1 class="display-3">Secrets</h1>
-    <p class="secret-text">Don't keep your secrets, share them anonymously!</p>
+<div class="container pt-5">
+  <div>
+    <h1 class="pt-5 mb-5">Don't keep your secrets, share them anonymously!</h1>
+
+   <% if (Error.errors) { %>
+    <div class="alert alert-dismissible alert-danger">
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+      <strong>Warning!</strong> <%= Error.errors.content %>
+    </div>
+   <% } %>
 
     <form action="/submit" method="POST">
+      <textarea  onKeyUp="limitText(this.form.secret,this.form.countdown, 300)" class="form-control" name="secret" rows="8" placeholder="What's your secret?"></textarea>
+      <p class="pt-3">(Maximum characters: 300)<br>
+        You have <input readonly type="text" name="countdown" size="3" value="300"> characters left.
+      </p>
+      <button class="btn btn-dark mt-3 mb-5" type="submit">Submit</button>
+  </form>
 
-      <div class="form-group">
-        <input type="text" class="form-control text-center" name="secret" placeholder="What's your secret?">
-      </div>
-      <button type="submit" class="btn btn-dark">Submit</button>
-    </form>
+  <script language="javascript" type="text/javascript">
+    function limitText(limitField, limitCount, limitNum) {
+      if (limitField.value.length > limitNum) {
+        limitField.value = limitField.value.substring(0, limitNum);
+      } else {
+        limitCount.value = limitNum - limitField.value.length;
+      }
+    }
+  </script>
 
 
   </div>

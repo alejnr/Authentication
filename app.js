@@ -28,15 +28,30 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
-mongoose.connect('mongodb://localhost:27017/userDB', {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
+mongoose.connect(process.env.MONGO_URI, {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
 
 const userSchema = new mongoose.Schema({
+    name: String,
     email: String,
     password: String,
     googleId: String,
     facebookId: String,
-    secret: String
+    image: String,
 })
+
+const secretSchema = new mongoose.Schema({
+    userId: {
+        type: String,
+        required: true
+    },
+    content: {
+        type: String,
+        required: [true, 'Please write your secret']
+    }
+})
+
+const Secret = mongoose.model('Secret', secretSchema)
+
 
 userSchema.plugin(passportLocalMongoose)
 userSchema.plugin(findOrCreate)
@@ -57,11 +72,11 @@ passport.deserializeUser(function(id, done) {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'http://localhost:3000/auth/google/secrets',
+    callbackURL: 'https://anonymoussecret.herokuapp.com/auth/google/secrets',
     userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
   },
   function(accessToken, refreshToken, profile, cb) {
-    User.findOrCreate({ googleId: profile.id }, { username: profile.emails[0].value }, function (err, user) {
+    User.findOrCreate({ googleId: profile.id }, { username: profile.emails[0].value, name: profile.displayName, image: profile.photos[0].value }, function (err, user) {
       return cb(err, user)
     })
   }
@@ -70,18 +85,24 @@ passport.use(new GoogleStrategy({
 passport.use(new FacebookStrategy({
     clientID: process.env.FACEBOOK_APP_ID,
     clientSecret: process.env.FACEBOOK_APP_SECRET,
-    callbackURL: "http://localhost:3000/auth/facebook/secrets",
+    callbackURL: "https://anonymoussecret.herokuapp.com/auth/facebook/secrets",
     profileFields: ['id', 'displayName', 'photos', 'email']
   },
   function(accessToken, refreshToken, profile, cb) {
-    User.findOrCreate({ facebookId: profile.id }, { username: profile.emails[0].value }, function (err, user) {
+    User.findOrCreate({ facebookId: profile.id }, { username: profile.emails[0].value, name: profile.displayName, image: profile.photos[0].value }, function (err, user) {
       return cb(err, user)
     })
   }
 ))
 
 app.get('/', function (req, res) {
-    res.render('home')
+    Secret.find(function (err, foundSecrets) {
+        if (!err) {
+            if (foundSecrets) {
+                res.render('home', {secrets: foundSecrets, req: req, user: req.user})
+            }
+        }
+    })
 })
 
 app.get('/auth/google',
@@ -91,7 +112,7 @@ app.get('/auth/google',
 app.get('/auth/google/secrets', 
   passport.authenticate('google', { failureRedirect: '/login' }),
   function(req, res) {
-    res.redirect('/secrets')
+    res.redirect('/')
 })
 
 app.get('/auth/facebook',
@@ -101,7 +122,7 @@ app.get('/auth/facebook',
 app.get('/auth/facebook/secrets',
   passport.authenticate('facebook', { failureRedirect: '/login' }),
   function(req, res) {
-    res.redirect('/secrets')
+    res.redirect('/')
 })
 
 
@@ -118,13 +139,16 @@ app.post('/submit', function (req, res) {
     User.findById(req.user._id, function (err, foundUser) {
         if (!err) {
             if (foundUser) {
-                foundUser.secret = req.body.secret
-                foundUser.save(function (err) {
+
+                const newSecret = new Secret ({
+                    userId: foundUser.id,
+                    content: req.body.secret
+                })
+                newSecret.save(function (err) {
                    if (!err) {
-                       res.redirect('/secrets')
+                       res.redirect('/')
                    } else {
-                       res.redirect('/submit')
-                       console.log(err)
+                       res.render('submit', {Error: err})
                    }
                 })
             }
@@ -143,7 +167,11 @@ app.get('/logout', function (req, res) {
 
 
 app.get('/login', function (req, res) {
-    res.render('login')
+    if (req.isAuthenticated()) {
+        res.redirect('/')
+    } else {
+        res.render('login')
+    }
 })
 
 app.post('/login', function (req, res) {
@@ -156,7 +184,7 @@ app.post('/login', function (req, res) {
     req.login(user, function (err) {
         if (!err) {
             passport.authenticate('local')(req, res, function () {
-                res.redirect('/secrets')
+                res.redirect('/')
             })
         } else {
             console.log(err)
@@ -165,42 +193,40 @@ app.post('/login', function (req, res) {
 
 })
 
-app.get('/secrets', function (req, res) {
-   User.find({'secret': {$ne:null}}, function (err, foundUsers) {
-       if (!err) {
-           if (foundUsers) {
-               res.render('secrets', {usersSecrets: foundUsers})
-           }
-       }
-   })
-}) 
-
 
 app.get('/register', function (req, res) {
-    res.render('register')
+    if (req.isAuthenticated()) {
+        res.redirect('/')
+    } else {
+        res.render('register')
+    }
 })
 
 app.post('/register', function (req, res) {
     
     User.register({})
-    User.register({username: req.body.username}, req.body.password, function (err, user) {
+    User.register({username: req.body.username, name: req.body.name}, req.body.password, function (err, user) {
         if(!err) {
             if (user) {
                 passport.authenticate('local')(req, res, function () {
-                    res.redirect('/secrets')
+                    res.redirect('/')
                 })
             } else {
                 console.log(err)
             }
         } else {
             res.redirect('/register')
-            console.log('A user with the given Email is already registered')
+            console.log(err)
         }
     })
 
 })
 
+app.use(function (req, res) {
+    res.redirect('/')
+  })
 
-app.listen(port, function(){
+
+app.listen(process.env.PORT || port, function(){
     console.log('Server started on port', port);
 })
