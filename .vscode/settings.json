@@ -1,4 +1,0 @@
-{
-    "appService.defaultWebAppToDeploy": "/subscriptions/0605fb9b-9c18-45a5-91fe-ecd0c3d12df2/resourceGroups/appsvc_linux_centralus_basic/providers/Microsoft.Web/sites/anonymoussecrets",
-    "appService.deploySubpath": "."
-}
